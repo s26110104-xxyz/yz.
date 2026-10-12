@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>憂鬱系迷因產生器 | Melancholic Meme Generator</title>
+    
+    <!-- 引入 Google 字型：Anton (經典 MMMM 文字) & Noto Serif TC (繁體中文襯線字，增添憂鬱感) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+    
+    <!-- 引入 html2canvas 函式庫，用於將網頁 HTML 轉為圖片下載 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- 引入 Tailwind CSS 快速佈局 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #0d0f12;
+            --panel-bg: #161920;
+            --border-color: #2a2e39;
+            --accent-color: #5c6275;
+            --text-main: #d1d5db;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Noto Serif TC', serif;
+            min-height: 100vh;
+        }
+
+        /* 迷因文字的關鍵樣式：厚重的文字陰影與描邊，確保任何圖片背景都能看清 */
+        .meme-text {
+            font-family: 'Anton', 'Noto Serif TC', sans-serif;
+            color: #ffffff;
+            text-transform: uppercase;
+            text-align: center;
+            line-height: 1.15;
+            letter-spacing: 1px;
+            word-break: break-word;
+            
+            /* 使用多重 text-shadow 模擬超粗黑色邊框 */
+            text-shadow: 
+                3px 3px 0 #000, -3px -3px 0 #000, 
+                3px -3px 0 #000, -3px 3px 0 #000,
+                0px 3px 0 #000,  0px -3px 0 #000,
+                3px 0px 0 #000, -3px 0px 0 #000,
+                2px 2px 5px rgba(0,0,0,0.9);
+            
+            -webkit-text-stroke: 1.5px black;
+            user-select: none;
+        }
+
+        /* 暗沉氛圍的金屬質感邊框與陰影 */
+        .melancholy-card {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        /* 自訂控制拉桿 (Range Slider) 的深色外觀 */
+        input[type=range] {
+            accent-color: #4b5563;
+        }
+
+        /* 按鈕hover微光效果 */
+        .btn-gothic {
+            background: linear-gradient(135deg, #1f242d 0%, #0f1115 100%);
+            border: 1px solid #374151;
+            transition: all 0.3s ease;
+        }
+        .btn-gothic:hover {
+            border-color: #9ca3af;
+            box-shadow: 0 0 15px rgba(156, 163, 175, 0.2);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col justify-between">
+
+    <header class="max-w-6xl mx-auto w-full mb-6 text-center border-b border-gray-800 pb-4">
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-widest text-gray-200 uppercase">
+            頹廢與虛無 · 迷因產生器
+        </h1>
+        <p class="text-xs md:text-sm text-gray-500 mt-1 italic">
+            「當你凝視迷因時，迷因也正在凝視著你...」
+        </p>
+    </header>
+
+    <main class="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start flex-grow">
+        
+        <!-- ==================== 左側：控制面板區 ==================== -->
+        <section class="lg:col-span-5 melancholy-card p-6 rounded-xl flex flex-col gap-5">
+            <h2 class="text-lg font-bold text-gray-300 border-b border-gray-800 pb-2 flex items-center gap-2">
+                <span>⚙️</span> 控制選項
+            </h2>
+
+            <!-- 1. 圖片上傳 (使用 FileReader 避免 CORS 問題) -->
+            <div>
+                <label class="block text-xs text-gray-400 mb-2 font-medium">選擇底圖 (支援 PNG / JPG)</label>
+                <label class="flex justify-center items-center px-4 py-3 border border-dashed border-gray-600 rounded-lg cursor-pointer bg-gray-900 hover:bg-gray-800 transition text-sm text-gray-300">
+                    <span class="mr-2">📷</span> 點擊上傳本地圖片
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                </label>
+            </div>
+
+            <!-- 2. 文字輸入框 -->
+            <div class="space-y-3">
+                <div>
+                    <label for="topTextInput" class="block text-xs text-gray-400 mb-1">上方文字 (Top Text)</label>
+                    <input type="text" id="topTextInput" value="當你試著保持積極..." 
+                        class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-100 focus:outline-none focus:border-gray-500">
+                </div>
+                <div>
+                    <label for="bottomTextInput" class="block text-xs text-gray-400 mb-1">下方文字 (Bottom Text)</label>
+                    <input type="text" id="bottomTextInput" value="但世界只給你一片漆黑" 
+                        class="w-full bg-gray-900 border border-gray-700 rounded p-2 text-sm text-gray-100 focus:outline-none focus:border-gray-500">
+                </div>
+            </div>
+
+            <!-- 3. 文字樣式與位置調整滑桿 -->
+            <div class="space-y-3 border-t border-gray-800 pt-3">
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>字體大小</span>
+                        <span id="fontSizeVal">36px</span>
+                    </div>
+                    <input type="range" id="fontSizeSlider" min="16" max="72" value="36" class="w-full">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>上方文字垂直位置</span>
+                        <span id="topPosVal">5%</span>
+                    </div>
+                    <input type="range" id="topPosSlider" min="0" max="45" value="5" class="w-full">
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>下方文字垂直位置</span>
+                        <span id="bottomPosVal">5%</span>
+                    </div>
+                    <input type="range" id="bottomPosSlider" min="0" max="45" value="5" class="w-full">
+                </div>
+            </div>
+
+            <!-- 4. 憂鬱氛圍特效拉桿 (圖片濾鏡) -->
+            <div class="space-y-3 border-t border-gray-800 pt-3">
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>底圖灰階 (Grayscale)</span>
+                        <span id="grayscaleVal">70%</span>
+                    </div>
+                    <input type="range" id="grayscaleSlider" min="0" max="100" value="70" class="w-full">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>暗角遮罩 (Dark Overlay)</span>
+                        <span id="overlayVal">30%</span>
+                    </div>
+                    <input type="range" id="overlaySlider" min="0" max="80" value="30" class="w-full">
+                </div>
+            </div>
+
+            <!-- 5. 一鍵下載按鈕 -->
+            <button id="downloadBtn" class="btn-gothic text-gray-200 font-bold py-3 px-4 rounded-lg w-full mt-2 flex items-center justify-center gap-2">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 20 20">
+                    <path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z"/>
+                </svg>
+                匯出迷因 (my-meme.png)
+            </button>
+        </section>
+
+
+        <!-- ==================== 右側：迷因即時預覽區 ==================== -->
+        <section class="lg:col-span-7 flex flex-col items-center">
+            <!-- 這層 Wrapper 用於掌控最大寬度 -->
+            <div class="w-full max-w-lg">
+                <!-- 真正的截圖目標容器：#meme-preview-container -->
+                <div id="meme-preview-container" class="relative overflow-hidden rounded-lg shadow-2xl bg-black flex items-center justify-center select-none" style="min-height: 300px;">
+                    
+                    <!-- 底圖 -->
+                    <img id="memeImage" class="w-full h-auto object-cover block transition-all duration-100" src="" alt="Meme Background">
+                    
+                    <!-- 暗角 overlay (加深憂鬱氛圍) -->
+                    <div id="darkOverlay" class="absolute inset-0 pointer-events-none bg-black" style="opacity: 0.3;"></div>
+
+                    <!-- 上方文字 -->
+                    <div id="topTextDisplay" class="meme-text absolute left-0 right-0 px-4 top-2 pointer-events-none">
+                        當你試著保持積極...
+                    </div>
+
+                    <!-- 下方文字 -->
+                    <div id="bottomTextDisplay" class="meme-text absolute left-0 right-0 px-4 bottom-2 pointer-events-none">
+                        但世界只給你一片漆黑
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 text-center mt-3">
+                    💡 提示：調整左側參數可即時獲得預覽，滿意後點擊「匯出迷因」即可下載圖檔。
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="max-w-6xl mx-auto w-full text-center text-xs text-gray-700 mt-12 border-t border-gray-900 pt-4">
+        Melancholic Meme Generator &copy; Single File Web App
+    </footer>
+
+    <script>
+        // DOM 元素選取
+        const imageInput = document.getElementById('imageInput');
+        const memeImage = document.getElementById('memeImage');
+        const darkOverlay = document.getElementById('darkOverlay');
+
+        const topTextInput = document.getElementById('topTextInput');
+        const bottomTextInput = document.getElementById('bottomTextInput');
+        const topTextDisplay = document.getElementById('topTextDisplay');
+        const bottomTextDisplay = document.getElementById('bottomTextDisplay');
+
+        const fontSizeSlider = document.getElementById('fontSizeSlider');
+        const topPosSlider = document.getElementById('topPosSlider');
+        const bottomPosSlider = document.getElementById('bottomPosSlider');
+        const grayscaleSlider = document.getElementById('grayscaleSlider');
+        const overlaySlider = document.getElementById('overlaySlider');
+
+        const fontSizeVal = document.getElementById('fontSizeVal');
+        const topPosVal = document.getElementById('topPosVal');
+        const bottomPosVal = document.getElementById('bottomPosVal');
+        const grayscaleVal = document.getElementById('grayscaleVal');
+        const overlayVal = document.getElementById('overlayVal');
+
+        const downloadBtn = document.getElementById('downloadBtn');
+        const memeContainer = document.getElementById('meme-preview-container');
+
+        function loadDefaultPlaceholder() {
+            // 一張預設的漆黑迷霧主題 SVG Data URI
+            const defaultSvg = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><rect width="600" height="600" fill="%23121318"/><circle cx="300" cy="250" r="120" fill="%231f232d" opacity="0.5"/><path d="M200 450 Q 300 380 400 450" stroke="%23374151" stroke-width="8" fill="none"/><circle cx="250" cy="230" r="12" fill="%236b7280"/><circle cx="350" cy="230" r="12" fill="%236b7280"/></svg>`;
+            memeImage.src = defaultSvg;
+        }
+
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // 建立 FileReader 物件
+                const reader = new FileReader();
+                
+                // 當檔案讀取完成時觸發
+                reader.onload = function(event) {
+                    // 將讀取結果 (Data URL) 賦予 <img> 的 src 屬性
+                    memeImage.src = event.target.result;
+                };
+                
+                // 將圖片檔轉為 Data URL 格式
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function updateMemeText() {
+            // 1. 更新上方與下方文字內容
+            topTextDisplay.textContent = topTextInput.value || '';
+            bottomTextDisplay.textContent = bottomTextInput.value || '';
+
+            // 2. 更新字體大小
+            const size = fontSizeSlider.value;
+            topTextDisplay.style.fontSize = `${size}px`;
+            bottomTextDisplay.style.fontSize = `${size}px`;
+            fontSizeVal.textContent = `${size}px`;
+
+            // 3. 更新垂直位置
+            const topPos = topPosSlider.value;
+            topTextDisplay.style.top = `${topPos}%`;
+            topPosVal.textContent = `${topPos}%`;
+
+            const bottomPos = bottomPosSlider.value;
+            bottomTextDisplay.style.bottom = `${bottomPos}%`;
+            bottomPosVal.textContent = `${bottomPos}%`;
+
+            // 4. 更新圖片灰階濾鏡
+            const gray = grayscaleSlider.value;
+            memeImage.style.filter = `grayscale(${gray}%)`;
+            grayscaleVal.textContent = `${gray}%`;
+
+            // 5. 更新暗角遮罩透明度
+            const overlay = overlaySlider.value;
+            darkOverlay.style.opacity = overlay / 100;
+            overlayVal.textContent = `${overlay}%`;
+        }
+
+        // 綁定所有 input 事件監聽，實現滑動拉桿時「即時預覽」
+        topTextInput.addEventListener('input', updateMemeText);
+        bottomTextInput.addEventListener('input', updateMemeText);
+        fontSizeSlider.addEventListener('input', updateMemeText);
+        topPosSlider.addEventListener('input', updateMemeText);
+        bottomPosSlider.addEventListener('input', updateMemeText);
+        grayscaleSlider.addEventListener('input', updateMemeText);
+        overlaySlider.addEventListener('input', updateMemeText);
+
+        downloadBtn.addEventListener('click', function() {
+            // 變更按鈕狀態
+            const originalBtnText = downloadBtn.innerHTML;
+            downloadBtn.innerText = '正在生成圖檔...';
+            downloadBtn.disabled = true;
+
+            // 使用 html2canvas 捕捉 #meme-preview-container 區塊
+            html2canvas(memeContainer, {
+                scale: 2, // 提高畫質 (2倍解析度)
+                useCORS: true, // 允許跨域圖片 (本機 DataURL 亦支援)
+                backgroundColor: null // 保持背景設定
+            }).then(canvas => {
+                // 將 canvas 轉為圖片 Data URL
+                const imageUrl = canvas.toDataURL('image/png');
+
+                // 建立一個隱藏的 <a> 標籤來觸發瀏覽器下載
+                const downloadLink = document.createElement('a');
+                downloadLink.href = imageUrl;
+                downloadLink.download = 'my-meme.png'; // 下載的檔名
+
+                // 觸發點擊
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                // 恢復按鈕狀態
+                downloadBtn.innerHTML = originalBtnText;
+                downloadBtn.disabled = false;
+            }).catch(err => {
+                console.error('截圖失敗:', err);
+                alert('圖片生成失敗，請稍後再試！');
+                downloadBtn.innerHTML = originalBtnText;
+                downloadBtn.disabled = false;
+            });
+        });
+
+        window.onload = function() {
+            loadDefaultPlaceholder();
+            updateMemeText();
+        };
+    </script>
+</body>
+</html>
