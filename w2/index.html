@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今天吃什麼？隨機抽籤機</title>
+
+  <!-- CSS 樣式區域 -->
+  <style>
+    /* 全局樣式設定：以薄荷綠與暖白為主色調 */
+    :root {
+      --mint-primary: #5ec2b6;      /* 薄荷綠主色 */
+      --mint-hover: #4ba89e;        /* 按鈕懸停深薄荷綠 */
+      --bg-warm-white: #fdfbf7;     /* 暖白背景 */
+      --card-bg: #ffffff;           /* 純白卡片背景 */
+      --text-color: #334e4a;        /* 質感深綠灰文字 */
+      --accent-cream: #f4ede2;      /* 柔和奶油點綴色 */
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-warm-white);
+      color: var(--text-color);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* 中央卡片容器 */
+    .card {
+      background-color: var(--card-bg);
+      width: 100%;
+      max-width: 420px;
+      padding: 40px 30px;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(94, 194, 182, 0.15);
+      text-align: center;
+      border: 2px solid #edf7f5;
+      transition: all 0.3s ease;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: var(--mint-primary);
+      font-weight: 600;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    /* 主標題 */
+    .title {
+      font-size: 2rem;
+      color: var(--text-color);
+      margin-bottom: 24px;
+      min-height: 2.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      word-break: break-word;
+    }
+
+    /* 生動彈跳動畫 (Bounce) */
+    .bounce-animation {
+      animation: bounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bounce {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.1);
+        opacity: 1;
+      }
+      70% {
+        transform: scale(0.9);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+
+    /* 抽籤結果區塊 */
+    .result-container {
+      margin-bottom: 28px;
+      transition: all 0.3s ease;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    /* 圖片外框與效果 */
+    .image-wrapper {
+      width: 100%;
+      height: 200px;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 16px;
+      background-color: var(--accent-cream);
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+
+    .image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .image-wrapper img:hover {
+      transform: scale(1.03);
+    }
+
+    /* Google Map 按鈕 */
+    .map-button {
+      display: inline-block;
+      width: 100%;
+      padding: 12px 20px;
+      background-color: var(--accent-cream);
+      color: var(--text-color);
+      text-decoration: none;
+      font-weight: 600;
+      border-radius: 12px;
+      transition: background-color 0.2s, transform 0.1s;
+    }
+
+    .map-button:hover {
+      background-color: #ebdcc9;
+      transform: translateY(-2px);
+    }
+
+    /* 主抽籤按鈕 */
+    .draw-button {
+      width: 100%;
+      padding: 16px 0;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #ffffff;
+      background-color: var(--mint-primary);
+      border: none;
+      border-radius: 16px;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(94, 194, 182, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .draw-button:hover {
+      background-color: var(--mint-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(94, 194, 182, 0.45);
+    }
+
+    .draw-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 3px 10px rgba(94, 194, 182, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HTML 結構區域 -->
+  <div class="card">
+    <span class="subtitle">美食決定器</span>
+    <h1 id="title" class="title">今天吃什麼？</h1>
+    
+    <!-- 抽中後顯示的餐點圖片與資訊區塊 -->
+    <div id="food-result-container" class="result-container hidden">
+      <div class="image-wrapper">
+        <img id="food-image" src="" alt="美食照片">
+      </div>
+      <a id="map-btn" class="map-button" href="#" target="_blank" rel="noopener noreferrer">
+        📍 馬上出發 (Google Map)
+      </a>
+    </div>
+
+    <!-- 抽籤按鈕 -->
+    <button id="draw-btn" class="draw-button">點我抽籤</button>
+  </div>
+
+  <!-- JavaScript 腳本區域 -->
+  <script>
+    // 確保 HTML 完全載入後才執行 JavaScript，避免 null 錯誤
+    document.addEventListener('DOMContentLoaded', () => {
+
+      // 定義美食清單與對應的照片 URL 和 Google Map 搜尋連結
+      const foodList = [
+        {
+          name: "豐岡山羊肉",
+          image: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=豐岡山羊肉"
+        },
+        {
+          name: "阿婆蔥油餅",
+          image: "https://images.unsplash.com/photo-1626777552726-4a6b54c97e46?auto=format&fit=crop&w=600&q=80",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=阿婆蔥油餅"
+        },
+        {
+          name: "微吃車輪餅",
+          image: "https://images.unsplash.com/photo-1563805042-7684c019e1cb?auto=format&fit=crop&w=600&q=80",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=微吃車輪餅"
+        },
+        {
+          name: "栗的鍋",
+          image: "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=600&q=80",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=栗的鍋"
+        },
+        {
+          name: "深水食堂",
+          image: "https://images.unsplash.com/photo-1555126634-323283e090fa?auto=format&fit=crop&w=600&q=80",
+          mapUrl: "https://www.google.com/maps/search/?api=1&query=深水食堂"
+        }
+      ];
+
+      // 取得 HTML 中的元素
+      const titleElement = document.getElementById('title');
+      const drawButton = document.getElementById('draw-btn');
+      const resultContainer = document.getElementById('food-result-container');
+      const foodImage = document.getElementById('food-image');
+      const mapBtn = document.getElementById('map-btn');
+
+      // 點擊按鈕事件
+      drawButton.addEventListener('click', () => {
+        // 1. 隨機抽取一個餐點
+        const randomIndex = Math.floor(Math.random() * foodList.length);
+        const selectedFood = foodList[randomIndex];
+
+        // 2. 更新標題文字
+        titleElement.textContent = selectedFood.name;
+
+        // 3. 移除並重新觸發彈跳動畫 (Bounce)
+        titleElement.classList.
