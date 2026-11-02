@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人數位名片</title>
+
+    <!-- 引入 Google 字型（宋體/明朝體，增加文藝質感） -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <!-- CSS 樣式區塊 -->
+    <style>
+        /* 全局基礎設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Noto Serif TC', serif;
+        }
+
+        /* 頁面背景：墨黑與極深墨綠漸層 */
+        body {
+            background: radial-gradient(circle at center, #0f1a14 0%, #080d0a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* 名片主卡片 */
+        .profile-card {
+            background: linear-gradient(145deg, #132219, #0b140f);
+            width: 100%;
+            max-width: 340px; /* 寬度適中 */
+            padding: 40px 28px;
+            border-radius: 20px; /* 優雅圓角 */
+            text-align: center;
+            /* 質感微陰影：深層擴散陰影與綠色微光 Glow 效果 */
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6),
+                        0 0 20px rgba(46, 77, 56, 0.2);
+            /* 細緻的翡翠墨綠邊框 */
+            border: 1px solid rgba(82, 128, 97, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        /* 卡片懸浮微互動 */
+        .profile-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(110, 168, 129, 0.4);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7),
+                        0 0 25px rgba(46, 77, 56, 0.3);
+        }
+
+        /* 1. 圓形大頭貼外框與圖片 */
+        .avatar-container {
+            width: 110px;
+            height: 110px;
+            margin: 0 auto 22px auto;
+            border-radius: 50%;
+            padding: 3px;
+            /* 墨綠金屬感環形漸層 */
+            background: linear-gradient(135deg, #528061, #1a2e22);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover; /* 確保圖片不變形 */
+            display: block;
+        }
+
+        /* 2. 名字樣式 */
+        .name {
+            font-size: 1.45rem;
+            font-weight: 500;
+            color: #e2ebe4; /* 淡灰綠色，高雅不刺眼 */
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        /* 自我介紹樣式 */
+        .bio {
+            font-size: 0.88rem;
+            color: #92b09b; /* 莫蘭迪鼠尾草綠 */
+            font-weight: 300;
+            line-height: 1.7;
+            margin-bottom: 30px;
+            padding: 0 5px;
+            letter-spacing: 0.5px;
+        }
+
+        /* 3. 按鈕區塊配置 */
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        /* 按鈕基礎樣式 */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px 0;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 400;
+            letter-spacing: 1px;
+            transition: all 0.25s ease;
+        }
+
+        /* IG 按鈕：深翡翠綠實色按鈕 */
+        .btn-instagram {
+            background-color: #264230;
+            color: #e2ebe4;
+            border: 1px solid #3d664c;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-instagram:hover {
+            background-color: #31543d;
+            color: #ffffff;
+            border-color: #528061;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Email 按鈕：黑綠底邊框按鈕 */
+        .btn-email {
+            background-color: rgba(15, 26, 20, 0.6);
+            color: #a3c4ad;
+            border: 1px solid rgba(82, 128, 97, 0.35);
+        }
+
+        .btn-email:hover {
+            background-color: rgba(38, 66, 48, 0.4);
+            color: #e2ebe4;
+            border-color: #528061;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 名片主體卡片 -->
+    <div class="profile-card">
+        <!-- 1. 圓形大頭貼照片 -->
+        <div class="avatar-container">
+            <img src="https://i.postimg.cc/4ym7qQKt/1786335663566-2.jpg" alt="大頭貼" class="avatar">
+        </div>
+
+        <!-- 2. 名字與簡短自我介紹 -->
+        <h1 class="name">嘉嘉</h1>
+        <p class="bio">我不嘻嘻。</p>
+
+        <!-- 3. 下方按鈕區塊 -->
+        <div class="button-group">
+            <a href="https://instagram.com" target="_blank" class="btn btn-instagram">Instagram</a>
+            <a href="mailto:your_email@example.com" class="btn btn-email">Email Me</a>
+        </div>
+    </div>
+
+</body>
+</html>
