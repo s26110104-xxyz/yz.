@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雲端心電感應 | Telepathy Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Notion 極簡風格變數與基礎設定 */
+        body {
+            background-color: #F7F6F3;
+            color: #37352F;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .notion-card {
+            background: #FFFFFF;
+            border: 1px solid rgba(55, 53, 47, 0.09);
+            box-shadow: rgba(15, 15, 15, 0.05) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 2px 4px;
+            border-radius: 6px;
+        }
+        
+        /* 3D 翻牌動畫 CSS */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .flip-transition { transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); }
+        
+        /* 載入動畫 */
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        .dot-anim { animation: pulse-dot 1.5s infinite; }
+        
+        /* 薄荷綠色系自訂 (Mint Green) */
+        .bg-mint { background-color: #84DCC6; }
+        .hover-bg-mint:hover { background-color: #72CDB6; }
+        .text-mint { color: #4BA88F; }
+        .border-mint { border-color: #84DCC6; }
+        .focus-border-mint:focus { border-color: #84DCC6; box-shadow: 0 0 0 2px rgba(132, 220, 198, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative">
+
+    <!-- 隱藏的房主控制台按鈕 (位於網頁右上角的淺灰色小圓點) -->
+    <div id="secret-host-btn" class="absolute top-6 right-6 w-3 h-3 rounded-full bg-gray-200 hover:bg-gray-400 cursor-pointer transition-colors duration-300" onclick="toggleHostMode()" title="房主控制台"></div>
+
+    <div class="w-full max-w-2xl notion-card p-8">
+        <!-- 標題區 -->
+        <div class="mb-8 text-center border-b pb-4 border-gray-100">
+            <h1 class="text-3xl font-bold tracking-tight text-[#37352F] mb-2">雲端心電感應</h1>
+            <p class="text-sm text-gray-500" id="room-display-info">連線準備中...</p>
+        </div>
+
+        <!-- 區塊 1：登入與房間設定 -->
+        <div id="login-section" class="space-y-4">
+            <div>
+                <label class="block text-sm font-semibold mb-1">玩家名稱</label>
+                <input type="text" id="player-name" class="w-full px-3 py-2 bg-[#F7F6F3] border border-transparent rounded focus-border-mint focus:bg-white focus:outline-none transition-all" placeholder="輸入你的名字..." />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-1">房間代碼</label>
+                <input type="text" id="room-code" class="w-full px-3 py-2 bg-[#F7F6F3] border border-transparent rounded focus-border-mint focus:bg-white focus:outline-none transition-all" placeholder="輸入房號進行分組..." />
+            </div>
+            <button onclick="joinRoom()" class="w-full py-2 px-4 bg-mint hover-bg-mint text-[#37352F] font-bold rounded shadow-sm transition-colors mt-4">
+                進入房間
+            </button>
+        </div>
+
+        <!-- 區塊 2：遊戲主畫面 -->
+        <div id="game-section" class="hidden space-y-6">
+            
+            <!-- 房主控制台 (僅點擊右上角圓點後可見) -->
+            <div id="host-console" class="hidden bg-teal-50 p-4 rounded-md border border-teal-100 space-y-3 mb-6">
+                <h3 class="text-xs font-bold text-mint uppercase tracking-widest flex items-center justify-between">
+                    房主控制台
+                    <span class="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+                </h3>
+                <div class="flex gap-2">
+                    <input type="text" id="host-question" class="flex-1 px-3 py-1.5 border rounded text-sm focus:outline-none focus-border-mint" placeholder="輸入題目 (例：說到夏天會想到什麼？)" />
+                    <button onclick="sendAction('set_question', {question: document.getElementById('host-question').value})" class="px-3 py-1.5 bg-[#37352F] text-white text-sm rounded hover:bg-gray-700 transition">出題</button>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="sendAction('reveal')" class="flex-1 py-1.5 bg-mint text-[#37352F] text-sm rounded hover-bg-mint transition font-bold shadow-sm">全體開牌</button>
+                    <button onclick="sendAction('reset')" class="flex-1 py-1.5 bg-white border border-gray-300 text-sm rounded hover:bg-gray-50 transition">重置本局</button>
+                </div>
+            </div>
+
+            <!-- 狀態提示 -->
+            <div id="status-message" class="text-center py-4 text-gray-500 font-medium">
+                等待房主出題中 <span class="dot-anim">.</span><span class="dot-anim" style="animation-delay: 0.2s">.</span><span class="dot-anim" style="animation-delay: 0.4s">.</span>
+            </div>
+
+            <!-- 題目與作答區 -->
+            <div id="play-area" class="hidden space-y-4">
+                <div class="bg-gray-50 p-4 rounded-md text-center border border-gray-100">
+                    <h2 class="text-sm font-semibold text-mint mb-1">目前題目</h2>
+                    <p id="current-question" class="text-2xl font-bold text-[#37352F]"></p>
+                </div>
+                <div class="flex gap-2">
+                    <input type="text" id="player-answer" class="flex-1 px-3 py-2 bg-[#F7F6F3] border border-transparent rounded focus-border-mint focus:bg-white focus:outline-none transition-all" placeholder="你的答案是..." />
+                    <button id="submit-btn" onclick="submitAnswer()" class="px-6 py-2 bg-[#37352F] text-white font-semibold rounded shadow-sm hover:bg-gray-700 transition">
+                        送出
+                    </button>
+                </div>
+            </div>
+
+            <!-- 開牌區 (3D 卡片) -->
+            <div id="reveal-area" class="hidden">
+                <div class="text-center mb-6">
+                    <h2 class="text-xl font-bold border-b inline-block pb-1 border-gray-300 text-[#37352F]">揭曉結果</h2>
+                </div>
+                <div id="cards-container" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- 卡片透過 JS 產生 -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // 常數設定
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxezk1H3NmMfgkbshTXqx8eBQvSBQIhGi2SSu_uSMWh0uTEwq_VBPEBWOOjX87LAz8LyQ/exec";
+        
+        // 全局變數
+        let playerName = "";
+        let roomCode = "";
+        let isHost = false;
+        let pollInterval = null;
+        let lastState = "";
+        let hasSubmittedAnswer = false;
+
+        // 切換房主模式 (隱藏按鈕)
+        function toggleHostMode() {
+            isHost = !isHost;
+            const hostConsole = document.getElementById('host-console');
+            const btn = document.getElementById('secret-host-btn');
+            if (isHost) {
+                hostConsole.classList.remove('hidden');
+                btn.classList.replace('bg-gray-200', 'bg-mint');
+            } else {
+                hostConsole.classList.add('hidden');
+                btn.classList.replace('bg-mint', 'bg-gray-200');
+            }
+        }
+
+        // 登入進入房間
+        function joinRoom() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const roomInput = document.getElementById('room-code').value.trim();
+            
+            if (!nameInput || !roomInput) {
+                alert("請填寫玩家名稱與房間代碼！");
+                return;
+            }
+
+            playerName = nameInput;
+            roomCode = roomInput;
+
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('game-section').classList.remove('hidden');
+            document.getElementById('room-display-info').innerText = `玩家：${playerName} | 房間：${roomCode}`;
+            
+            // 啟動輪詢 (Polling) 機制，每 1.5 秒抓取一次資料
+            fetchGameState();
+            pollInterval = setInterval(fetchGameState, 1500);
+        }
+
+        // 向 GAS 傳送 POST 請求更新資料[cite: 2]
+        async function sendAction(action, extraData = {}) {
+            const payload = { room: roomCode, action: action, ...extraData };
+            try {
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                // 送出後立即拉取更新以加速 UI 反應
+                fetchGameState();
+            } catch (err) {
+                console.error("API 請求失敗:", err);
+            }
+        }
+
+        // 玩家送出答案[cite: 2]
+        function submitAnswer() {
+            const answer = document.getElementById('player-answer').value.trim();
+            if (!answer) return;
+            
+            sendAction('submit_answer', { playerName: playerName, answer: answer });
+            
+            hasSubmittedAnswer = true;
+            document.getElementById('player-answer').value = "";
+            document.getElementById('player-answer').disabled = true;
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('submit-btn').innerText = "已送出";
+            document.getElementById('status-message').innerHTML = "已紀錄，等待其他玩家及房主開牌 <span class='dot-anim'>.</span><span class='dot-anim'>.</span><span class='dot-anim'>.</span>";
+            document.getElementById('status-message').classList.remove('hidden');
+        }
+
+        // 抓取當前遊戲狀態 (GET)[cite: 2]
+        async function fetchGameState() {
+            try {
+                const res = await fetch(`${GAS_API_URL}?room=${roomCode}`);
+                const data = await res.json();
+                renderUI(data);
+            } catch (err) {
+                console.error("無法取得房間資料:", err);
+            }
+        }
+
+        // 渲染 UI (根據 setup / playing / revealed 狀態機切換)[cite: 2]
+        function renderUI(data) {
+            const playArea = document.getElementById('play-area');
+            const revealArea = document.getElementById('reveal-area');
+            const statusMsg = document.getElementById('status-message');
+            
+            // 若從 revealed 回到 setup 或 playing，代表新的一局開始，重置前端狀態
+            if (lastState === 'revealed' && data.status !== 'revealed') {
+                hasSubmittedAnswer = false;
+                document.getElementById('player-answer').disabled = false;
+                document.getElementById('submit-btn').disabled = false;
+                document.getElementById('submit-btn').innerText = "送出";
+            }
+
+            if (data.status === "setup") {
+                playArea.classList.add('hidden');
+                revealArea.classList.add('hidden');
+                statusMsg.classList.remove('hidden');
+                statusMsg.innerHTML = "等待房主出題中 <span class='dot-anim'>.</span><span class='dot-anim' style='animation-delay: 0.2s'>.</span><span class='dot-anim' style='animation-delay: 0.4s'>.</span>";
+            } 
+            else if (data.status === "playing") {
+                revealArea.classList.add('hidden');
+                document.getElementById('current-question').innerText = data.question;
+                
+                if (!hasSubmittedAnswer) {
+                    playArea.classList.remove('hidden');
+                    statusMsg.classList.add('hidden');
+                } else {
+                    playArea.classList.remove('hidden'); 
+                    statusMsg.classList.remove('hidden'); // 顯示等待開牌
+                }
+            } 
+            else if (data.status === "revealed") {
+                playArea.classList.add('hidden');
+                statusMsg.classList.add('hidden');
+                revealArea.classList.remove('hidden');
+                
+                // 只有狀態剛轉為 revealed 時才生成卡片，避免輪詢造成的動畫閃爍
+                if (lastState !== "revealed") {
+                    renderCards(data.answers);
+                }
+            }
+
+            lastState = data.status;
+        }
+
+        // 生成 3D 翻轉卡片與控制延遲動畫
+        function renderCards(answersObj) {
+            const container = document.getElementById('cards-container');
+            container.innerHTML = ""; 
+            
+            const players = Object.keys(answersObj);
+            if (players.length === 0) {
+                container.innerHTML = "<p class='text-gray-400 col-span-full text-center'>無人作答</p>";
+                return;
+            }
+
+            players.forEach((player, index) => {
+                const answer = answersObj[player];
+                // 建立卡片的 HTML (包含正反兩面)
+                const cardHTML = `
+                    <div class="perspective-1000 h-32 w-full">
+                        <div id="card-inner-${index}" class="relative w-full h-full transform-style-3d flip-transition shadow-sm rounded-md border border-gray-200">
+                            <!-- 卡片正面 (未開牌：薄荷綠點綴) -->
+                            <div class="absolute w-full h-full backface-hidden bg-[#F7F6F3] flex flex-col items-center justify-center rounded-md border-2 border-dashed border-mint">
+                                <span class="text-xs font-semibold text-gray-500 mb-1">${player}</span>
+                                <span class="text-3xl text-mint font-bold opacity-50">?</span>
+                            </div>
+                            <!-- 卡片背面 (答案：Notion 白) -->
+                            <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-white flex flex-col items-center justify-center rounded-md border border-gray-200 shadow-md">
+                                <span class="text-xs font-semibold text-mint mb-1">${player}</span>
+                                <span class="text-xl font-bold text-[#37352F] px-2 text-center truncate w-full" title="${answer}">${answer}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHTML);
+
+                // CSS 3D 動畫觸發 (階梯式延遲增加儀式感)
+                setTimeout(() => {
+                    const cardInner = document.getElementById(`card-inner-${index}`);
+                    if (cardInner) {
+                        cardInner.classList.add('rotate-y-180');
+                    }
+                }, 300 + (index * 250)); // 第一張 300ms，後續每張間隔 250ms
+            });
+        }
+    </script>
+</body>
+</html>
